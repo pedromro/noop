@@ -684,6 +684,24 @@ public final class BLEManager: NSObject, ObservableObject {
         charging || tick % 2 == 0
     }
 
+    /// True for inbound CoreBluetooth values that belong to a WHOOP strap data path. Kept pure so the
+    /// always-on daily raw log can tap the notification stream without accidentally recording unrelated
+    /// standard-HR devices that may share 0x2A37.
+    static func isWhoopDataCharacteristic(_ uuid: CBUUID) -> Bool {
+        uuid == heartRateChar ||
+        uuid == batteryChar ||
+        uuid == dataNotifyChar ||
+        uuid == cmdNotifyChar ||
+        uuid == eventNotifyChar ||
+        uuid == disSerialChar ||
+        uuid == disHwRevChar ||
+        uuid == disFwRevChar ||
+        uuid == disManufacturerChar ||
+        uuid == disModelNumberChar ||
+        uuid == disSwRevChar ||
+        whoop5NotifyChars.contains(uuid)
+    }
+
     /// #battery: pure 5/MG battery-read throttle decision, unit-testable without a CoreBluetooth seam.
     /// Returns true when no prior read exists (the first read of a connection, or post-disconnect re-seed)
     /// OR when at least `whoop5BatteryReadMinIntervalSeconds` has elapsed since the last read — HALVED
@@ -912,6 +930,10 @@ public final class BLEManager: NSObject, ObservableObject {
     /// Durable log of the WHOOP 5/MG high-rate R22 deep buffers (type-0x2F ≥ 1 KB) for #423 reverse-
     /// engineering. Gated on the same capture toggle; no-op otherwise.
     private lazy var puffinDeepBufferLog = PuffinDeepBufferLog()
+
+    /// Always-on, app-private raw WHOOP notification sidecar. It creates one JSONL file per local day so a
+    /// long-running capture naturally rotates without a user remembering to export the strap log.
+    private lazy var whoopDailyLog = WhoopDailyLog(log: { [weak self] line in self?.log(line) })
 
     /// Force the puffin capture buffer to disk so the Settings export/reveal targets a current file.
     /// `async` because the actual encode + write now happens off the main actor (#652); callers that
@@ -6824,6 +6846,14 @@ extension BLEManager: @preconcurrency CBPeripheralDelegate {
         inboundFrames += 1
         inboundBytes += bytes.count
         if characteristic.uuid == BLEManager.cmdNotifyChar { cmdChannelFrames += 1 }
+        if Self.isWhoopDataCharacteristic(characteristic.uuid) {
+            whoopDailyLog.recordNotification(
+                bytes: bytes,
+                characteristic: characteristic.uuid,
+                family: selectedModel.deviceFamily.rawValue,
+                peripheralId: peripheral.identifier.uuidString,
+                isBackfilling: backfilling)
+        }
 
         switch characteristic.uuid {
         case BLEManager.heartRateChar:
