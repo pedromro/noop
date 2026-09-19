@@ -8,6 +8,8 @@
 name: Testing build (fork)
 
 on:
+  push:
+    branches: [AI]
   workflow_dispatch:
 
 permissions:
