@@ -121,7 +121,7 @@ jobs:
               awk 'NR==1 && $0=="---"{fm=1; next} fm && $0=="---"{fm=0; next} !fm{print}' "$NOTES_MD" > "$BODY"
             else
               echo "::warning::No ${NOTES_MD} — write the release notes there first. Using a placeholder."
-              printf 'NOOP **%s** — release build.\n' "$NEW" > "$BODY"
+              printf 'Poop **%s** — release build.\n' "$NEW" > "$BODY"
             fi
             # Auto "What's Changed" breakdown: GitHub's generate-notes API lists every merged PR since the
             # previous RELEASE (non-prerelease, so testing-latest snapshots are ignored), + contributors +
@@ -147,13 +147,13 @@ jobs:
               echo "First release (no prior release tag) — skipping the auto PR breakdown."
             fi
             {
-              printf '\n---\n\n**Downloads** — NOOP Staging identity, installs **beside** the official app (separate data):\n'
-              printf -- '- **Android** — `NOOP-android-v%s.apk` (`com.noop.whoop.staging`)\n' "$NEW"
-              printf -- '- **macOS** — `NOOP-macos-v%s.zip` (unzip, then right-click → Open)\n' "$NEW"
-              printf -- '- **iOS** — `NOOP-ios-unsigned-v%s.ipa` (AltStore / Sideloadly)\n' "$NEW"
+              printf '\n---\n\n**Downloads** — Poop Staging identity, installs **beside** the official app (separate data):\n'
+              printf -- '- **Android** — `Poop-android-v%s.apk` (`com.noop.whoop.staging`)\n' "$NEW"
+              printf -- '- **macOS** — `Poop-macos-v%s.zip` (unzip, then right-click → Open)\n' "$NEW"
+              printf -- '- **iOS** — `Poop-ios-unsigned-v%s.ipa` (AltStore / Sideloadly)\n' "$NEW"
             } >> "$BODY"
             gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$(git rev-parse HEAD)" \
-              --title "NOOP ${NEW}" --notes-file "$BODY"
+              --title "Poop ${NEW}" --notes-file "$BODY"
           fi
 
   android:
@@ -185,8 +185,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VER: ${{ needs.bump.outputs.ver }}
         run: |
-          cp app/build/outputs/apk/full/release/*.apk "NOOP-android-v${VER}.apk"
-          gh release upload "${{ needs.bump.outputs.tag }}" "NOOP-android-v${VER}.apk" \
+          cp app/build/outputs/apk/full/release/*.apk "Poop-android-v${VER}.apk"
+          gh release upload "${{ needs.bump.outputs.tag }}" "Poop-android-v${VER}.apk" \
             --repo "$GITHUB_REPOSITORY" --clobber
 
   macos:
@@ -242,8 +242,8 @@ jobs:
           # future UPDATE still needs the re-toggle the in-app #429/#295 banner already describes.)
           codesign --force --deep --sign - "$APP"
           codesign -dvv "$APP" 2>&1 | grep -Ei 'identifier|signature|flags' || true
-          ditto -c -k --keepParent "$APP" "NOOP-macos-v${VER}.zip"
-          gh release upload "${{ needs.bump.outputs.tag }}" "NOOP-macos-v${VER}.zip" --repo "$GITHUB_REPOSITORY" --clobber
+          ditto -c -k --keepParent "$APP" "Poop-macos-v${VER}.zip"
+          gh release upload "${{ needs.bump.outputs.tag }}" "Poop-macos-v${VER}.zip" --repo "$GITHUB_REPOSITORY" --clobber
 
   ios:
     needs: bump
@@ -293,8 +293,8 @@ jobs:
           # provision and re-sign the App Group shared by the app and widget.
           Tools/prepare-ios-sideload-app.sh "$APP"
           rm -rf Payload && mkdir Payload && cp -R "$APP" Payload/
-          zip -qr "NOOP-ios-unsigned-v${VER}.ipa" Payload
-          gh release upload "${{ needs.bump.outputs.tag }}" "NOOP-ios-unsigned-v${VER}.ipa" --repo "$GITHUB_REPOSITORY" --clobber
+          zip -qr "Poop-ios-unsigned-v${VER}.ipa" Payload
+          gh release upload "${{ needs.bump.outputs.tag }}" "Poop-ios-unsigned-v${VER}.ipa" --repo "$GITHUB_REPOSITORY" --clobber
 
   # Prepend this release to the AltStore / SideStore source manifest — the one AltStore reads from
   # raw.githubusercontent.com/<repo>/main/altstore-source.json (docs/IOS.md) — so a sideload user is
@@ -321,7 +321,7 @@ jobs:
           if [ ! -f altstore-source.json ]; then
             echo "::warning::no altstore-source.json on main — skipping AltStore update."; exit 0
           fi
-          IPA="NOOP-ios-unsigned-v${VER}.ipa"
+          IPA="Poop-ios-unsigned-v${VER}.ipa"
           # The freshly-uploaded IPA's byte size, straight off the release asset (the `ios` job just pushed it).
           SIZE=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets \
             --jq '.assets[] | select(.name=="'"$IPA"'") | .size' || true)
@@ -331,7 +331,7 @@ jobs:
           [ -n "${BUILD:-}" ] || BUILD=$(grep -m1 'CURRENT_PROJECT_VERSION:' project.yml | sed -E 's/.*"([0-9]+)".*/\1/')
           DATE=$(date -u +%Y-%m-%d)
           URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${IPA}"
-          DESC="NOOP ${VER}. See the release notes for what changed."
+          DESC="Poop ${VER}. See the release notes for what changed."
           MINOS=$(jq -r '.apps[0].minOSVersion // "17.0"' altstore-source.json)
 
           # Prepend to versions[] (dedup this version so a re-run is idempotent) AND mirror into the
